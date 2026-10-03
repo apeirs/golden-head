@@ -67,6 +67,7 @@ public class AutoClicker extends Module {
         if (mc.player == null || mc.world == null || mc.currentScreen != null) return;
         if (mc.player.isDead() || mc.player.deathTime > 0 || mc.player.getHealth() <= 0) return;
         if (!lockedOn()) return;
+        if (!HitSelect.allow(AimLock.get())) return;
         if (System.currentTimeMillis() < nextClick) return;
 
         // Same edge a real click produces. handleInputEvents turns it into doAttack next tick.

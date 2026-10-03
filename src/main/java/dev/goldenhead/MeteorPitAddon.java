@@ -29,6 +29,10 @@ public class MeteorPitAddon extends MeteorAddon {
         Modules.get().add(new AutoFight());
         Modules.get().add(new AutoClicker());
         Modules.get().add(new JumpReset());
+        Modules.get().add(new WTap());
+        Modules.get().add(new KeepSprint());
+        Modules.get().add(new HitSelect());
+        Modules.get().add(new AutoRod());
         Modules.get().add(new GiantCake());
         Modules.get().add(new AutoEvent());
         Modules.get().add(new UpcomingEvents());

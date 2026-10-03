@@ -156,6 +156,7 @@ public class AutoFight extends Module {
     private void onRender(Render3DEvent event) {
         if (target == null || mc.player == null || mc.currentScreen != null) return;
         if (System.currentTimeMillis() < nextHit || distanceTo(target) > attackRange.get()) return;
+        if (!HitSelect.allow(target)) return;
 
         // Taking damage resets hurtTime to 10; if it never goes up the hits aren't landing.
         if (target.hurtTime > 0) hitsWithoutDamage = 0;
