@@ -12,7 +12,7 @@ import net.minecraft.entity.LivingEntity;
  */
 public class HitSelect extends Module {
     public HitSelect() {
-        super(MeteorPitAddon.PIT, "hit-select", "Only swings when the enemy can take a hit (hurt time is over).");
+        super(MeteorPitAddon.COMBAT_18, "hit-select", "Only swings when the enemy can take a hit (hurt time is over).");
     }
 
     /** True when a click now can register. Inactive module means no extra gate. */

@@ -13,6 +13,7 @@ import net.minecraft.item.Items;
 
 public class MeteorPitAddon extends MeteorAddon {
     public static final Category PIT = new Category("Pit", Items.GOLDEN_APPLE.getDefaultStack());
+    public static final Category COMBAT_18 = new Category("1.8 Combat", Items.DIAMOND_SWORD.getDefaultStack());
 
     // Modules from other addons that get filed under Pit instead of their own category (see ModulesMixin).
     public static final String ZAIMBOT = "zgoly.meteorist.modules.zaimbot.ZAimbot";
@@ -47,6 +48,7 @@ public class MeteorPitAddon extends MeteorAddon {
     @Override
     public void onRegisterCategories() {
         Modules.registerCategory(PIT);
+        Modules.registerCategory(COMBAT_18);
     }
 
     @Override

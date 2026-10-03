@@ -33,7 +33,7 @@ public class WTap extends Module {
     private boolean forced;
 
     public WTap() {
-        super(MeteorPitAddon.PIT, "w-tap", "Releases forward for one tick after a hit so the next swing is a sprint hit.");
+        super(MeteorPitAddon.COMBAT_18, "w-tap", "Releases forward for one tick after a hit so the next swing is a sprint hit.");
     }
 
     public static boolean isTapping() {

@@ -17,7 +17,7 @@ public class KeepSprint extends Module {
     private boolean restore;
 
     public KeepSprint() {
-        super(MeteorPitAddon.PIT, "keep-sprint", "Keeps sprint on after a hit while you hold forward. Does not change knockback.");
+        super(MeteorPitAddon.COMBAT_18, "keep-sprint", "Keeps sprint on after a hit while you hold forward. Does not change knockback.");
     }
 
     @Override

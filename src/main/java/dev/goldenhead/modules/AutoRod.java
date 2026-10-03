@@ -49,7 +49,7 @@ public class AutoRod extends Module {
     private boolean swapped;
 
     public AutoRod() {
-        super(MeteorPitAddon.PIT, "auto-rod", "Throws and reels a hotbar fishing rod at the locked player, then switches back.");
+        super(MeteorPitAddon.COMBAT_18, "auto-rod", "Throws and reels a hotbar fishing rod at the locked player, then switches back.");
     }
 
     @Override
