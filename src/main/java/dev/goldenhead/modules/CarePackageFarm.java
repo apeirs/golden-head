@@ -413,6 +413,14 @@ public class CarePackageFarm extends Module {
     private void quit(String why) {
         state = State.Quit;
         LOG.info("care-package-farm: quitting ({})", why);
+        // The launcher script reads this, so a ban or a failed login stops it instead of relaunching.
+        try {
+            JsonObject result = new JsonObject();
+            result.addProperty("reason", why);
+            Files.writeString(SESSION.resolveSibling("result.json"), result.toString());
+        } catch (Exception e) {
+            LOG.error("care-package-farm: can't write result", e);
+        }
         // Saved off, so the next launch only farms if the script asks for it.
         toggle();
         mc.scheduleStop();

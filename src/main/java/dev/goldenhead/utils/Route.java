@@ -22,7 +22,7 @@ import java.util.PriorityQueue;
 import java.util.Set;
 
 /**
- * Grid path for Care Package. Other Pit modules still sprint with {@link Mover}; this is not Baritone.
+ * Grid path for Care Package and Streak. Other Pit modules still sprint with {@link Mover}; this is not Baritone.
  * Feet stand on a block, jump one block, and fall as far as the floor below. A launch pad is one jump
  * of about {@link LaunchPads#CARRY} blocks along its throw, because stepping on the slime launches you.
  */
@@ -96,7 +96,7 @@ public final class Route {
         return true;
     }
 
-    /** Follows a {@link Route} with {@link Mover}, and rides a launch pad the way Streak does. */
+    /** Follows a {@link Route} with {@link Mover}, and rides a launch pad when the path crosses one. */
     public static final class Follower {
         private static final int STUCK_TICKS = 12;
         private static final int SLIME_STUCK_TICKS = 30;

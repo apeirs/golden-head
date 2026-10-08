@@ -108,7 +108,7 @@ public class Streak extends Module {
 
         // Run until the aim point is in reach, then hold the look.
         Vec3d aim = player.getBoundingBox().getCenter();
-        if (mc.player.getEyePos().distanceTo(aim) <= REACH && !router.usingPad()) {
+        if (mc.player.getEyePos().distanceTo(aim) <= REACH) {
             mover.stop();
             mover.lookAt(aim, ROTATION_SPEED);
             return;
