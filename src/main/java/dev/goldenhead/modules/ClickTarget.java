@@ -3,6 +3,7 @@ package dev.goldenhead.modules;
 import dev.goldenhead.utils.BlockScan;
 import dev.goldenhead.utils.Clicker;
 import dev.goldenhead.utils.Mover;
+import dev.goldenhead.utils.SpawnArea;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.settings.*;
@@ -19,9 +20,9 @@ import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * Shared engine for event objectives you have to click: find the closest target (block or entity), get there
- * with Baritone (or by running straight), lock on and spam clicks at a random interval. Clicks run per rendered
- * frame, not per tick, so intervals under 50 ms (one tick) actually happen.
+ * Shared engine for event objectives you have to click: find the closest target (block or entity), sprint
+ * there, lock on and spam clicks at a random interval. Clicks run per rendered frame, not per tick, so
+ * intervals under 50 ms (one tick) actually happen.
  */
 public abstract class ClickTarget extends Module {
     public enum ClickMode { Left, Right, Both }
@@ -90,22 +91,15 @@ public abstract class ClickTarget extends Module {
         .name("run")
         .description("Move to the target until it is in reach.")
         .defaultValue(true)
-        .build()
-    );
-
-    private final Setting<Boolean> pathfind = sgMove.add(new BoolSetting.Builder()
-        .name("pathfind")
-        .description("Use Baritone for the fastest route (no mining or placing, any drop height). Falls back to running straight if Baritone is missing or finds no path.")
-        .defaultValue(true)
-        .visible(run::get)
+        .visible(this::canMove)
         .build()
     );
 
     private final Setting<Boolean> autoJump = sgMove.add(new BoolSetting.Builder()
         .name("auto-jump")
-        .description("Jump when running into something (straight-line running only).")
+        .description("Jump onto a one-block step, and when you run into something you can hop.")
         .defaultValue(true)
-        .visible(run::get)
+        .visible(() -> canMove() && run.get())
         .build()
     );
 
@@ -114,8 +108,9 @@ public abstract class ClickTarget extends Module {
     private boolean inReach;
     private int scanTimer;
     private long nextClick;
-    private final Mover mover = new Mover();
+    protected final Mover mover = new Mover();
     private final Map<BlockPos, Integer> clicks = new HashMap<>();
+    private boolean spawnExitInProgress;
 
     protected ClickTarget(Category category, String name, String description) {
         super(category, name, description);
@@ -133,6 +128,19 @@ public abstract class ClickTarget extends Module {
         return false;
     }
 
+    /** How far to scan for a block target. Defaults to the range setting. */
+    protected double scanRange() {
+        return range.get();
+    }
+
+    /**
+     * Where to walk before a block target is loaded. Null stands still.
+     * Clicking still requires a real target in reach.
+     */
+    protected Vec3d approachPoint() {
+        return null;
+    }
+
     /** Bonus (in squared blocks) that makes a block win over closer ones, e.g. 400 = worth 20 blocks of walking. */
     protected double weight(BlockPos pos) {
         return 0;
@@ -148,7 +156,37 @@ public abstract class ClickTarget extends Module {
         return mc.currentScreen == null;
     }
 
+    /** Whether this module may steer the player's movement keys toward its target. */
+    protected boolean canMove() {
+        return true;
+    }
+
     protected void onClicked() {
+    }
+
+    /** Whether this event must leave the protected spawn before selecting its event target. */
+    protected boolean leaveSpawnFirst() {
+        return false;
+    }
+
+    /** Whether this event has appeared and spawn movement should begin. */
+    protected boolean shouldLeaveSpawn() {
+        return true;
+    }
+
+    /** Whether to chain sprint jumps while this module is moving. */
+    protected boolean sprintJump() {
+        return false;
+    }
+
+    /** Movement used to leave the protected spawn (events can use a direct pit entry). */
+    protected void moveOutOfSpawn() {
+        mover.leaveSpawn();
+    }
+
+    /** Whether this event should keep clicking on game ticks while the window is unfocused. */
+    protected boolean clickWhileUnfocused() {
+        return false;
     }
 
     @Override
@@ -159,11 +197,13 @@ public abstract class ClickTarget extends Module {
         nextClick = 0;
         inReach = false;
         clicks.clear();
+        spawnExitInProgress = false;
     }
 
     @Override
     public void onDeactivate() {
         mover.release();
+        spawnExitInProgress = false;
     }
 
     @EventHandler
@@ -177,29 +217,87 @@ public abstract class ClickTarget extends Module {
         if (targetBlock != null && !(candidateBlocks().contains(mc.world.getBlockState(targetBlock).getBlock()) && isUsableBlock(targetBlock))) targetBlock = null;
         if (targetEntity != null && (targetEntity.isRemoved() || !isTargetEntity(targetEntity))) targetEntity = null;
 
-        Vec3d aim = aimPoint();
-        if (aim == null || mc.currentScreen != null) {
+        if (mc.currentScreen != null) {
             inReach = false;
             mover.release();
             return;
         }
 
-        inReach = mc.player.getEyePos().distanceTo(aim) <= reach.get();
-        if (!run.get() || inReach) {
+        if (leaveSpawnFirst() && shouldLeaveSpawn()) {
+            if (SpawnArea.isInSpawn(mc.player)) spawnExitInProgress = true;
+            if (spawnExitInProgress) {
+                int exitY = SpawnArea.exitY();
+                if (exitY == Integer.MIN_VALUE || mc.player.getY() > exitY) {
+                    inReach = false;
+                    mover.autoJump = autoJump.get();
+                    mover.sprintJump = sprintJump();
+                    mover.rotationSpeed = rotationSpeed.get();
+                    moveOutOfSpawn();
+                    return;
+                }
+                spawnExitInProgress = false;
+                mover.stop();
+            }
+        }
+
+        Vec3d aim = aimPoint();
+        if (aim == null) {
+            inReach = false;
+            Vec3d approach = approachPoint();
+            if (!canMove()) {
+                mover.release();
+                if (approach != null) mover.lookAt(approach, rotationSpeed.get());
+                return;
+            }
+            if (approach == null || !run.get()) {
+                mover.release();
+                return;
+            }
+            moveToward(BlockPos.ofFloored(approach), 3, approach);
+            return;
+        }
+
+        // A chest one floor up is already inside the reach sphere. Stopping there never walks the stairs.
+        boolean level = targetBlock == null || Math.abs(mc.player.getBlockY() - targetBlock.getY()) <= 2;
+        inReach = level && mc.player.getEyePos().distanceTo(aim) <= reach.get();
+        if (!canMove() || !run.get() || inReach) {
             mover.stop();
             mover.lookAt(aim, rotationSpeed.get());
             return;
         }
 
-        mover.pathfind = pathfind.get();
-        mover.autoJump = autoJump.get();
-        mover.rotationSpeed = rotationSpeed.get();
         BlockPos goal = targetBlock != null ? targetBlock : targetEntity.getBlockPos();
-        mover.tick(goal, Math.max(1, (int) Math.floor(reach.get()) - 1), aim);
+        moveToward(goal, Math.max(1, (int) Math.floor(reach.get()) - 1), aim);
+    }
+
+    private void moveToward(BlockPos goal, int range, Vec3d look) {
+        mover.autoJump = autoJump.get();
+        mover.sprintJump = sprintJump();
+        mover.rotationSpeed = rotationSpeed.get();
+        follow(goal, range, look);
+    }
+
+    /**
+     * Walk toward {@code goal} while looking at {@code look}.
+     * Care Package follows a path. Other modules sprint straight at the goal.
+     */
+    protected void follow(BlockPos goal, int range, Vec3d look) {
+        mover.tick(goal, range, look);
     }
 
     @EventHandler
     private void onRender(Render3DEvent event) {
+        if (clickWhileUnfocused() && !mc.isWindowFocused()) return;
+        tryClick();
+    }
+
+    @EventHandler
+    private void onTickPost(TickEvent.Post event) {
+        if (!clickWhileUnfocused() || mc.isWindowFocused()) return;
+        tryClick();
+    }
+
+    private void tryClick() {
         if (!inReach || mc.player == null || !canClick()) return;
         Vec3d aim = aimPoint();
         if (aim == null || System.currentTimeMillis() < nextClick) return;
@@ -218,11 +316,12 @@ public abstract class ClickTarget extends Module {
 
     private void findTarget() {
         Vec3d eye = mc.player.getEyePos();
-        double best = range.get() * range.get();
+        double scan = scanRange();
+        double best = scan * scan;
         targetBlock = null;
         targetEntity = null;
 
-        for (BlockPos pos : BlockScan.find(candidateBlocks(), range.get() + 2)) {
+        for (BlockPos pos : BlockScan.find(candidateBlocks(), scan + 2)) {
             double d = eye.squaredDistanceTo(Vec3d.ofCenter(pos)) - weight(pos);
             if (d < best && isUsableBlock(pos)) {
                 best = d;

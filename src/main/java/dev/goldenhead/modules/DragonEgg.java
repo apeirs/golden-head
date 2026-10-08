@@ -28,6 +28,31 @@ public class DragonEgg extends ClickTarget {
     }
 
     @Override
+    protected boolean leaveSpawnFirst() {
+        return true;
+    }
+
+    @Override
+    protected boolean shouldLeaveSpawn() {
+        return targetBlock != null || targetEntity != null;
+    }
+
+    @Override
+    protected boolean sprintJump() {
+        return true;
+    }
+
+    @Override
+    protected void moveOutOfSpawn() {
+        mover.enterPit();
+    }
+
+    @Override
+    protected boolean clickWhileUnfocused() {
+        return true;
+    }
+
+    @Override
     protected boolean isTargetEntity(Entity entity) {
         if (!(entity instanceof ArmorStandEntity stand)) return false;
         ItemStack head = stand.getEquippedStack(EquipmentSlot.HEAD);

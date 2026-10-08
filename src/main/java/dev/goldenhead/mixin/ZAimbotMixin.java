@@ -1,6 +1,8 @@
 package dev.goldenhead.mixin;
 
+import dev.goldenhead.kos.Kos;
 import dev.goldenhead.modules.Beast;
+import dev.goldenhead.modules.Streak;
 import dev.goldenhead.modules.TeamDeathmatch;
 import dev.goldenhead.utils.AimLock;
 import dev.goldenhead.utils.SpawnArea;
@@ -10,6 +12,7 @@ import meteordevelopment.meteorclient.utils.entity.SortPriority;
 import meteordevelopment.meteorclient.utils.entity.TargetUtils;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.player.PlayerEntity;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
@@ -39,11 +42,12 @@ public abstract class ZAimbotMixin {
         throw new AssertionError();
     }
 
-    // Never aim at players in spawn (they can't be hit) or TDM teammates.
+    // Never aim at players in spawn (they can't be hit), TDM teammates, or anyone outside a non-empty KOS list.
     @Inject(method = "entityCheck", at = @At("RETURN"), cancellable = true)
     private void goldenhead$teamFilter(Entity entity, CallbackInfoReturnable<Boolean> cir) {
         if (!cir.getReturnValueZ()) return;
-        if (SpawnArea.isInSpawn(entity) || !TeamDeathmatch.allowTarget(entity)) cir.setReturnValue(false);
+        if (SpawnArea.isInSpawn(entity) || !TeamDeathmatch.allowTarget(entity) || !Streak.allowTarget(entity)) cir.setReturnValue(false);
+        else if (entity instanceof PlayerEntity player && !Kos.allows(player)) cir.setReturnValue(false);
     }
 
     // Off while we stand in spawn; during Beast, aim at a valid beast first, otherwise ZAimbot picks as usual.
@@ -52,6 +56,11 @@ public abstract class ZAimbotMixin {
         // Drop last frame's lock. aim() puts it back only when ZAimbot really has someone.
         AimLock.clear();
         if (mc.player == null || mc.world == null) return;
+        // Streak is walking at one player and must not be turned toward someone else.
+        if (Streak.ownsMovement()) {
+            ci.cancel();
+            return;
+        }
         if (SpawnArea.isInSpawn(mc.player)) {
             ci.cancel();
             return;

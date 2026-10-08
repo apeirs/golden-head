@@ -50,6 +50,7 @@ public class WTap extends Module {
     @EventHandler
     private void onAttack(AttackEntityEvent event) {
         if (mc.player == null || SpawnArea.isInSpawn(mc.player)) return;
+        if (WwSprint.lockSprintOverride()) return;
         if (!(event.entity instanceof LivingEntity)) return;
         left = ticks.get();
     }
@@ -58,6 +59,11 @@ public class WTap extends Module {
     @EventHandler(priority = EventPriority.HIGH)
     private void onTick(TickEvent.Pre event) {
         if (mc.player == null) return;
+        if (WwSprint.lockSprintOverride()) {
+            left = 0;
+            restore();
+            return;
+        }
         if (left > 0) {
             mc.options.forwardKey.setPressed(false);
             mc.player.setSprinting(false);

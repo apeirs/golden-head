@@ -4,7 +4,7 @@ Goal: one module (`auto-event`, Pit category) that detects the running Pit event
 Combat events = sprint + hit at a random interval under 100 ms (AutoFight, default 40-95 ms).
 
 ## Building blocks
-- `utils/Mover` - Baritone pathing (no mining/placing, any drop height) or straight sprint when close + visible.
+- `utils/Mover` - sprint toward the goal, hop a one-block step, strafe around a wall, walk off a drop.
 - `modules/ClickTarget` - find closest target block/entity, get there, spam-click (Dragon Egg, Care Package).
 - `modules/AutoFight` - combat: real players only (tab-listed, no v2-UUID NPCs), friends/TDM teammates skipped,
   beasts first, unhittable targets (no hurtTime after 12 hits) skipped 5 s. `extraFilter` / `holdZone` hooks.

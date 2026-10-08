@@ -5,10 +5,15 @@
   "client": [
     "ModuleAccessor",
     "BossBarHudAccessor",
+    "ClientPlayerEntityMixin",
+    "KeyboardInputMixin",
     "ModulesMixin",
     "NametagsMixin",
+    "FriendNametagMixin",
     "TextDisplayAccessor",
-    "ZAimbotMixin"
+    "ZAimbotMixin",
+    "FriendsMixin",
+    "NoInteractMixin"
   ],
   "injectors": {
     "defaultRequire": 1

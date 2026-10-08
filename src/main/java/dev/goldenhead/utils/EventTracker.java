@@ -73,6 +73,12 @@ public final class EventTracker {
         return pending;
     }
 
+    /** True while this event is the running major or the running minor. A major does not hide a minor. */
+    public boolean running(PitEvent event) {
+        current();
+        return event != null && (event == major || event == minor);
+    }
+
     public long pendingInMs() {
         return pending == null ? Long.MAX_VALUE : pendingAt - System.currentTimeMillis();
     }

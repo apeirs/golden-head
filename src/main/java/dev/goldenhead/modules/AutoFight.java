@@ -1,6 +1,7 @@
 package dev.goldenhead.modules;
 
 import dev.goldenhead.MeteorPitAddon;
+import dev.goldenhead.kos.Kos;
 import dev.goldenhead.utils.Mover;
 import dev.goldenhead.utils.SpawnArea;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
@@ -23,7 +24,8 @@ import java.util.function.Predicate;
 
 /**
  * Pit combat: sprint at the best target and hit at a random interval. Targets are real players only
- * (tab-listed, not NPCs), never friends, never TDM teammates; beasts first. A target that takes no damage
+ * (tab-listed, not NPCs), never friends, never TDM teammates. A non-empty KOS list is the only set of
+ * names it will chase. Beasts first. A target that takes no damage
  * after several hits (spawn protection, invulnerable) is skipped for a while.
  */
 public class AutoFight extends Module {
@@ -66,7 +68,7 @@ public class AutoFight extends Module {
 
     private final Setting<Boolean> chase = sgGeneral.add(new BoolSetting.Builder()
         .name("chase")
-        .description("Sprint (or path with Baritone) to targets out of reach.")
+        .description("Sprint to targets out of reach.")
         .defaultValue(true)
         .build()
     );
@@ -116,7 +118,7 @@ public class AutoFight extends Module {
     @EventHandler
     private void onTick(TickEvent.Pre event) {
         if (mc.player == null || mc.world == null || mc.currentScreen != null) return;
-        if (paused) {
+        if (paused || Streak.ownsMovement()) {
             mover.stop();
             target = null;
             return;
@@ -190,7 +192,7 @@ public class AutoFight extends Module {
         if (player == mc.player || !player.isAlive() || player.isRemoved() || player.isCreative() || player.isSpectator()) return false;
         if (SpawnArea.isInSpawn(player)) return false;
         if (mc.player.squaredDistanceTo(player) > searchRange.get() * searchRange.get()) return false;
-        if (!isRealPlayer(player) || !Friends.get().shouldAttack(player) || !TeamDeathmatch.allowTarget(player)) return false;
+        if (!isRealPlayer(player) || !Friends.get().shouldAttack(player) || !Kos.allows(player) || !TeamDeathmatch.allowTarget(player) || !Streak.allowTarget(player)) return false;
         Long skip = skipUntil.get(player.getUuid());
         if (skip != null && skip > System.currentTimeMillis()) return false;
         return extraFilter == null || extraFilter.test(player);

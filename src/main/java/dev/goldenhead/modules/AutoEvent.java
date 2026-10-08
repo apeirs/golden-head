@@ -499,6 +499,9 @@ public class AutoEvent extends Module {
 
     private void auctionPeek() {
         status = "auction (no bidding)";
+        // Auction Worth opens the menu itself and prices the item. Don't race it for the same screen.
+        AuctionWorth worth = Modules.get().get(AuctionWorth.class);
+        if (worth != null && worth.isActive()) return;
         if (!auctionPeek.get() || auctionDumped || auctionCommand == null || auctionOpenedAt != 0) return;
         ChatUtils.sendPlayerMsg(auctionCommand.startsWith("/") ? auctionCommand : "/" + auctionCommand, false);
         auctionOpenedAt = System.currentTimeMillis();
